@@ -1,9 +1,10 @@
+// BookingApp.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'https://script.google.com/macros/s/AKfycbwLBGijyHEGr1gjIMvb4hzQ88tkCgD_IbwgZ8hqMgMczMpTx2lWvBumO5phTif1erjiJA/exec';
+const API_BASE = 'https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_URL/exec';
 
-export default function App() {
+export default function BookingApp() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -17,21 +18,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Countdown timer
   useEffect(() => {
     if (timer > 0) {
-      const interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
+      const interval = setInterval(() => setTimer(t => t - 1), 1000);
       return () => clearInterval(interval);
     }
   }, [timer]);
 
-  const sendOtp = async () => {
-    if (!email || !name) {
-      setMessage('Please enter both name and email.');
-      return;
-    }
+  useEffect(() => {
+    setOtpSent(false);
+    setTimer(0);
+  }, [email]);
+
+  const sendOtp = () => {
+    if (!email || !name) return setMessage('Name and Email required.');
     setOtpSent(true);
     setTimer(180);
-    setMessage(`(DEBUG) OTP is 123456 – This is for testing only.`);
+    setMessage(`A verification code has been sent to ${email}. If not received, check spam folder. (Use 123456 for testing)`);
   };
 
   const verifyOtp = () => {
@@ -44,89 +48,53 @@ export default function App() {
     }
   };
 
-const fetchSlots = async () => {
-  setLoading(true);
-  try {
-    const res = await axios.get(`${API_BASE}?type=getSlots`);
-
-    // Format slot dates for safety
-    const formatSlots = (slots) =>
-      slots.map(row => [
-        row[0], // Slot ID
-        row[1], // Date Label
-        row[2], // Time Label
-        typeof row[3] === 'string' ? row[3] : new Date(row[3]).toISOString().slice(0, 10),
-        row[4]
-      ]);
-
-    // Set fresh, clean data
-    setSlots({
-      visit1: formatSlots(res.data.visit1),
-      visit2: formatSlots(res.data.visit2)
-    });
-
-    // Clear selections to avoid stale slot errors
-    setSelectedVisit1('');
-    setSelectedVisit2('');
-  } catch (err) {
-    setMessage('Failed to fetch slots.');
-  }
-  setLoading(false);
-};
-
-
-  const fetchBooking = async () => {
+  const fetchSlots = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}?type=getBooking&email=${email}`);
-      setBooking(res.data);
-    } catch (err) {
-      setMessage('Failed to fetch booking.');
+      const res = await axios.get(`${API_BASE}?type=getSlots`);
+      setSlots(res.data);
+    } catch {
+      setMessage('Failed to fetch slots');
     }
+    setLoading(false);
   };
 
-const handleBooking = async () => {
-  if (!selectedVisit1 || !selectedVisit2 || !name) {
-    setMessage('All fields are required.');
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
-    const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
-
-    console.log('Submitting booking:');
-    console.log('Visit1:', v1Date, v1Time);
-    console.log('Visit2:', v2Date, v2Time);
-
-    const visit1 = `${v1Date}|${v1Time}`;
-    const visit2 = `${v2Date}|${v2Time}`;
-
-    const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
-
-    setMessage(res.data.success ? 'Booking successful!' : res.data.message || 'Booking failed.');
-
-    if (res.data.success) {
-      console.log('Re-fetching booking...');
-      fetchBooking();
-      fetchSlots();
+  const fetchBooking = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE}?type=getBooking&email=${encodeURIComponent(email)}`);
+      if (res.data?.visit1Date) setBooking(res.data);
+    } catch {
+      setMessage('Could not fetch booking');
     }
-  } catch (err) {
-    console.error('Booking failed:', err);
-    setMessage('Booking failed. Please try again.');
-  }
+    setLoading(false);
+  };
 
-  setLoading(false);
-};
+  const handleBooking = async () => {
+    if (!selectedVisit1 || !selectedVisit2) return setMessage('Select both slots');
+    setLoading(true);
+    const visit1 = selectedVisit1;
+    const visit2 = selectedVisit2;
 
-
-
+    try {
+      const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
+      if (res.data.success) {
+        setMessage('Booking successful!');
+        fetchBooking();
+        fetchSlots();
+      } else {
+        setMessage(res.data.message || 'Booking failed.');
+      }
+    } catch {
+      setMessage('Error submitting booking');
+    }
+    setLoading(false);
+  };
 
   const cancelBooking = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}?type=cancelBooking&email=${email}`);
+      const res = await axios.get(`${API_BASE}?type=cancelBooking&email=${encodeURIComponent(email)}`);
       if (res.data.success) {
         setBooking(null);
         setSelectedVisit1('');
@@ -134,122 +102,101 @@ const handleBooking = async () => {
         fetchSlots();
         setMessage('Booking cancelled.');
       } else {
-        setMessage('No booking found.');
+        setMessage('Cancellation failed.');
       }
-    } catch (err) {
-      setMessage('Failed to cancel booking.');
+    } catch {
+      setMessage('Error cancelling booking');
     }
     setLoading(false);
   };
 
-const formatDate = (dateStr) => {
-  if (!dateStr || !dateStr.includes('-')) return 'Invalid Date';
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day); // local time
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
+  const filteredSlots = () => {
+    const v1Date = selectedVisit1 ? selectedVisit1.split('|')[0] : null;
+    const v2Date = selectedVisit2 ? selectedVisit2.split('|')[0] : null;
 
+    let v1Filtered = slots.visit1;
+    let v2Filtered = slots.visit2;
 
-  const formatTime = (timeStr) => {
-    const [hour, minute] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hour);
-    date.setMinutes(minute);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric', minute: '2-digit', hour12: true
-    });
+    if (v2Date) {
+      const filterDate = new Date(v2Date);
+      filterDate.setDate(filterDate.getDate() - 1);
+      const match = filterDate.toISOString().split('T')[0];
+      v1Filtered = v1Filtered.filter(slot => slot[3] === match);
+    }
+
+    if (v1Date) {
+      const filterDate = new Date(v1Date);
+      filterDate.setDate(filterDate.getDate() + 1);
+      const match = filterDate.toISOString().split('T')[0];
+      v2Filtered = v2Filtered.filter(slot => slot[3] === match);
+    }
+
+    return { v1Filtered, v2Filtered };
   };
 
-const renderBookingDetails = () => {
-  if (!booking) return null;
+  const formatLabel = (slot) => `${slot[1]} – ${slot[2]}`;
 
-  // Logs for debugging
-  console.log('visit1Date:', booking.visit1Date);
-  console.log('visit1Time:', booking.visit1Time);
-  console.log('visit2Date:', booking.visit2Date);
-  console.log('visit2Time:', booking.visit2Time);
-
-  // Safer local date formatter
-  const safeFormatDate = (dateStr) => {
-    if (!dateStr || !dateStr.includes('-')) return 'Invalid Date';
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day); // local time
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-  };
-
-  const formatTime = (timeStr) => {
-    if (!timeStr || !timeStr.includes(':')) return 'Invalid Time';
-    const [hour, minute] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hour);
-    date.setMinutes(minute);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric', minute: '2-digit', hour12: true
-    });
+  const formatBooking = (dateStr, timeStr) => {
+    try {
+      const date = new Date(dateStr);
+      return `${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} at ${timeStr}`;
+    } catch {
+      return `${dateStr} at ${timeStr}`;
+    }
   };
 
   return (
-    <div>
-      <p><strong>Your Booking:</strong></p>
-      <p>Visit 1: {safeFormatDate(booking.visit1Date)} at {formatTime(booking.visit1Time)}</p>
-      <p>Visit 2: {safeFormatDate(booking.visit2Date)} at {formatTime(booking.visit2Time)}</p>
-      <button className="bg-red-500 text-white px-4 py-1 mt-2" onClick={cancelBooking}>Cancel Booking</button>
-    </div>
-  );
-};
-
-  return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Study Booking App</h1>
+    <div className="p-6 max-w-xl mx-auto">
+      <h2 className="text-xl font-bold mb-4">Study Booking</h2>
 
       {!isVerified && (
-        <div className="space-y-2">
-          <input type="text" placeholder="Your name" className="border p-2 w-full" value={name} onChange={e => setName(e.target.value)} />
-          <input type="email" placeholder="Your email" className="border p-2 w-full" value={email} onChange={e => setEmail(e.target.value)} />
-          <button className="bg-blue-600 text-white px-4 py-2" disabled={timer > 0} onClick={sendOtp}>
-            {timer > 0 ? `Wait ${timer}s` : 'Send OTP'}
-          </button>
+        <div className="space-y-3">
+          <input className="border p-2 w-full" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
+          <input className="border p-2 w-full" placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)} />
+          <button disabled={timer > 0} className="bg-blue-600 text-white px-4 py-2" onClick={sendOtp}>{timer > 0 ? `Wait ${timer}s` : 'Send OTP'}</button>
           {otpSent && (
             <>
-              <input type="text" placeholder="Enter OTP" className="border p-2 w-full" value={otp} onChange={e => setOtp(e.target.value)} />
-              <button className="bg-green-600 text-white px-4 py-2 mt-2" onClick={verifyOtp}>Verify</button>
+              <input className="border p-2 w-full" placeholder="Enter OTP" value={otp} onChange={e => setOtp(e.target.value)} />
+              <button className="bg-green-600 text-white px-4 py-2" onClick={verifyOtp}>Verify</button>
             </>
           )}
         </div>
       )}
 
       {isVerified && (
-        <div className="mt-4 space-y-4">
-          {renderBookingDetails() || (
+        <div className="space-y-4 mt-4">
+          {booking ? (
+            <div>
+              <p className="font-semibold">Your Booking:</p>
+              <p>Visit 1: {formatBooking(booking.visit1Date, booking.visit1Time)}</p>
+              <p>Visit 2: {formatBooking(booking.visit2Date, booking.visit2Time)}</p>
+              <button className="bg-red-600 text-white px-4 py-2 mt-2" onClick={cancelBooking}>Cancel Booking</button>
+            </div>
+          ) : (
             <div className="space-y-2">
               <select className="border p-2 w-full" value={selectedVisit1} onChange={e => setSelectedVisit1(e.target.value)}>
-                <option value="">Select Visit 1 Slot</option>
-                {slots.visit1.map((slot, idx) => (
-                  <option key={idx} value={`${slot[3]}|${slot[4]}`}>{`${slot[1]} – ${slot[2]}`}</option>
+                <option value="">Select Visit 1</option>
+                {filteredSlots().v1Filtered.map((slot, idx) => (
+                  <option key={idx} value={`${slot[3]}|${slot[4]}`}>{formatLabel(slot)}</option>
                 ))}
               </select>
               <select className="border p-2 w-full" value={selectedVisit2} onChange={e => setSelectedVisit2(e.target.value)}>
-                <option value="">Select Visit 2 Slot</option>
-                {slots.visit2.map((slot, idx) => (
-                  <option key={idx} value={`${slot[3]}|${slot[4]}`}>{`${slot[1]} – ${slot[2]}`}</option>
+                <option value="">Select Visit 2</option>
+                {filteredSlots().v2Filtered.map((slot, idx) => (
+                  <option key={idx} value={`${slot[3]}|${slot[4]}`}>{formatLabel(slot)}</option>
                 ))}
               </select>
-              <button className="bg-blue-700 text-white px-4 py-2" onClick={handleBooking}>Submit Booking</button>
+              <div className="flex gap-2">
+                <button className="bg-blue-700 text-white px-4 py-2" onClick={handleBooking}>Submit</button>
+                <button className="bg-gray-500 text-white px-4 py-2" onClick={() => { setSelectedVisit1(''); setSelectedVisit2(''); fetchSlots(); }}>Reset</button>
+              </div>
             </div>
           )}
-
-          {message && <p className="mt-2 text-green-600">{message}</p>}
         </div>
       )}
 
-      {loading && <p className="mt-4">Loading...</p>}
+      {loading && <p className="text-center text-gray-600 mt-4">Loading...</p>}
+      {message && <p className="text-green-700 mt-2 text-sm">{message}</p>}
     </div>
   );
 }

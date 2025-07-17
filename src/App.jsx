@@ -11,6 +11,8 @@ export default function App() {
   const [timer, setTimer] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
   const [slots, setSlots] = useState({ visit1: [], visit2: [] });
+  const [filteredVisit1, setFilteredVisit1] = useState([]);
+  const [filteredVisit2, setFilteredVisit2] = useState([]);
   const [selectedVisit1, setSelectedVisit1] = useState('');
   const [selectedVisit2, setSelectedVisit2] = useState('');
   const [booking, setBooking] = useState(null);
@@ -29,6 +31,24 @@ export default function App() {
       setMessage(`A verification code has been sent to ${email}. Please check your spam folder if you don't see it.`);
     }
   }, [otpSent, email]);
+
+  useEffect(() => {
+    // Two-way filtering
+    const filterVisit2 = () => {
+      if (!selectedVisit1) return slots.visit2;
+      const [v1Date] = selectedVisit1.split('|');
+      return slots.visit2.filter(slot => new Date(slot[3]) > new Date(v1Date));
+    };
+
+    const filterVisit1 = () => {
+      if (!selectedVisit2) return slots.visit1;
+      const [v2Date] = selectedVisit2.split('|');
+      return slots.visit1.filter(slot => new Date(slot[3]) < new Date(v2Date));
+    };
+
+    setFilteredVisit1(filterVisit1());
+    setFilteredVisit2(filterVisit2());
+  }, [selectedVisit1, selectedVisit2, slots]);
 
   const sendOtp = async () => {
     if (!email || !name) {
@@ -143,7 +163,6 @@ export default function App() {
 
   const renderBookingDetails = () => {
     if (!booking) return null;
-
     return (
       <div>
         <p><strong>Your Booking:</strong></p>
@@ -190,18 +209,18 @@ export default function App() {
             <div className="space-y-2">
               <select className="border p-2 w-full" value={selectedVisit1} onChange={e => setSelectedVisit1(e.target.value)}>
                 <option value="">Select Visit 1 Slot</option>
-                {slots.visit1.map((slot, idx) => (
+                {filteredVisit1.map((slot, idx) => (
                   <option key={idx} value={`${slot[3]}|${slot[4]}`}>{`${slot[1]} – ${slot[2]}`}</option>
                 ))}
               </select>
               <select className="border p-2 w-full" value={selectedVisit2} onChange={e => setSelectedVisit2(e.target.value)}>
                 <option value="">Select Visit 2 Slot</option>
-                {slots.visit2.map((slot, idx) => (
+                {filteredVisit2.map((slot, idx) => (
                   <option key={idx} value={`${slot[3]}|${slot[4]}`}>{`${slot[1]} – ${slot[2]}`}</option>
                 ))}
               </select>
               <div className="flex gap-2">
-                <button className="bg-blue-700 text-white px-4 py-2" onClick={handleBooking}>Submit Booking</button>
+                <button className="bg-blue-700 text-white px-4 py-2" onClick={handleBooking} disabled={loading}>Submit Booking</button>
                 <button className="bg-gray-500 text-white px-4 py-2" onClick={resetForm}>Reset</button>
               </div>
             </div>

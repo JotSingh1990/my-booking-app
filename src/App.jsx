@@ -114,11 +114,11 @@ export default function App() {
       const adjV1Date = new Date(v1Date); 
 	
 
-      const visit1 = `${Utilities.formatDate(adjV1Date)}|${v1Time}`;
+      const visit1 = `${Utilities.formatDate(adjV1Date, "America/New_York", "yyyy-MM-dd")}|${v1Time}`;
 
       const adjV2Date = new Date(v2Date);
   
-      const visit2 = `${Utilities.formatDate(adjV2Date)}|${v2Time}`;
+      const visit2 = `${Utilities.formatDate(adjV2Date, "America/New_York", "yyyy-MM-dd")}|${v2Time}`;
 
       const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 

@@ -36,23 +36,17 @@ export default function App() {
     const filterVisit2 = () => {
       if (!selectedVisit1) return slots.visit2;
       const [v1Date] = selectedVisit1.split('|');
-      const visit1Plus1 = new Date(v1Date);
-      visit1Plus1.setDate(visit1Plus1.getDate() + 1);
-      return slots.visit2.filter(slot => {
-        const v2 = new Date(slot[3]);
-        return v2.toISOString().split('T')[0] === visit1Plus1.toISOString().split('T')[0];
-      });
+      const nextDay = new Date(v1Date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return slots.visit2.filter(slot => new Date(slot[3]).toISOString().slice(0, 10) === nextDay.toISOString().slice(0, 10));
     };
 
     const filterVisit1 = () => {
       if (!selectedVisit2) return slots.visit1;
       const [v2Date] = selectedVisit2.split('|');
-      const visit2Minus1 = new Date(v2Date);
-      visit2Minus1.setDate(visit2Minus1.getDate() - 1);
-      return slots.visit1.filter(slot => {
-        const v1 = new Date(slot[3]);
-        return v1.toISOString().split('T')[0] === visit2Minus1.toISOString().split('T')[0];
-      });
+      const prevDay = new Date(v2Date);
+      prevDay.setDate(prevDay.getDate() - 1);
+      return slots.visit1.filter(slot => new Date(slot[3]).toISOString().slice(0, 10) === prevDay.toISOString().slice(0, 10));
     };
 
     setFilteredVisit1(filterVisit1());
@@ -101,7 +95,6 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      setBooking(null);
       setMessage('Failed to fetch booking.');
     }
   };
@@ -117,8 +110,13 @@ export default function App() {
       const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
       const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
 
-      const visit1 = `${v1Date}|${v1Time}`;
-      const visit2 = `${v2Date}|${v2Time}`;
+      const adjV1Date = new Date(v1Date);
+      adjV1Date.setDate(adjV1Date.getDate() + 1);
+      const visit1 = `${adjV1Date.toISOString().slice(0, 10)}|${v1Time}`;
+
+      const adjV2Date = new Date(v2Date);
+      adjV2Date.setDate(adjV2Date.getDate() + 1);
+      const visit2 = `${adjV2Date.toISOString().slice(0, 10)}|${v2Time}`;
 
       const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 

@@ -44,16 +44,36 @@ export default function App() {
     }
   };
 
-  const fetchSlots = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API_BASE}?type=getSlots`);
-      setSlots(res.data);
-    } catch (err) {
-      setMessage('Failed to fetch slots.');
-    }
-    setLoading(false);
-  };
+const fetchSlots = async () => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${API_BASE}?type=getSlots`);
+
+    // Format slot dates for safety
+    const formatSlots = (slots) =>
+      slots.map(row => [
+        row[0], // Slot ID
+        row[1], // Date Label
+        row[2], // Time Label
+        typeof row[3] === 'string' ? row[3] : new Date(row[3]).toISOString().slice(0, 10),
+        row[4]
+      ]);
+
+    // Set fresh, clean data
+    setSlots({
+      visit1: formatSlots(res.data.visit1),
+      visit2: formatSlots(res.data.visit2)
+    });
+
+    // Clear selections to avoid stale slot errors
+    setSelectedVisit1('');
+    setSelectedVisit2('');
+  } catch (err) {
+    setMessage('Failed to fetch slots.');
+  }
+  setLoading(false);
+};
+
 
   const fetchBooking = async () => {
     try {

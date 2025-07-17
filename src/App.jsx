@@ -33,17 +33,26 @@ export default function App() {
   }, [otpSent, email]);
 
   useEffect(() => {
-    // Two-way filtering
     const filterVisit2 = () => {
       if (!selectedVisit1) return slots.visit2;
       const [v1Date] = selectedVisit1.split('|');
-      return slots.visit2.filter(slot => new Date(slot[3]) > new Date(v1Date));
+      const visit1Plus1 = new Date(v1Date);
+      visit1Plus1.setDate(visit1Plus1.getDate() + 1);
+      return slots.visit2.filter(slot => {
+        const v2 = new Date(slot[3]);
+        return v2.toISOString().split('T')[0] === visit1Plus1.toISOString().split('T')[0];
+      });
     };
 
     const filterVisit1 = () => {
       if (!selectedVisit2) return slots.visit1;
       const [v2Date] = selectedVisit2.split('|');
-      return slots.visit1.filter(slot => new Date(slot[3]) < new Date(v2Date));
+      const visit2Minus1 = new Date(v2Date);
+      visit2Minus1.setDate(visit2Minus1.getDate() - 1);
+      return slots.visit1.filter(slot => {
+        const v1 = new Date(slot[3]);
+        return v1.toISOString().split('T')[0] === visit2Minus1.toISOString().split('T')[0];
+      });
     };
 
     setFilteredVisit1(filterVisit1());
@@ -92,6 +101,7 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
+      setBooking(null);
       setMessage('Failed to fetch booking.');
     }
   };

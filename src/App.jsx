@@ -150,24 +150,23 @@ export default function App() {
     setLoading(false);
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr || !dateStr.includes('-')) return 'Invalid Date';
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-  };
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  if (isNaN(date)) return 'Invalid Date';
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+};
 
-  const formatTime = (timeStr) => {
-    const [hour, minute] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hour);
-    date.setMinutes(minute);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric', minute: '2-digit', hour12: true
-    });
-  };
+
+const formatTime = (timeStr) => {
+  const time = new Date(timeStr);
+  if (isNaN(time)) return 'Invalid Time';
+  return time.toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+};
+
 
   const renderBookingDetails = () => {
     if (!booking) return null;

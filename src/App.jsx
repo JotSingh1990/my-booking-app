@@ -92,15 +92,21 @@ const handleBooking = async () => {
   setLoading(true);
 
   try {
-    // Extract from dropdown value — formatted as "YYYY-MM-DD|HH:mm"
-    const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
-    const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
+    // Parse dropdown selections like "2025-07-22|09:00"
+    const [v1DateStr, v1Time] = selectedVisit1.split('|').map(s => s.trim());
+    const [v2DateStr, v2Time] = selectedVisit2.split('|').map(s => s.trim());
 
-    // Construct the exact format your backend expects
-    const visit1 = `${v1Date}|${v1Time}`;
-    const visit2 = `${v2Date}|${v2Time}`;
+    // Prevent implicit UTC conversion — use components
+    const [v1Year, v1Month, v1Day] = v1DateStr.split('-').map(Number);
+    const [v2Year, v2Month, v2Day] = v2DateStr.split('-').map(Number);
 
-    // Send to Google Apps Script
+    const visit1Date = `${v1Year}-${String(v1Month).padStart(2, '0')}-${String(v1Day).padStart(2, '0')}`;
+    const visit2Date = `${v2Year}-${String(v2Month).padStart(2, '0')}-${String(v2Day).padStart(2, '0')}`;
+
+    // Construct visit strings for backend
+    const visit1 = `${visit1Date}|${v1Time}`;
+    const visit2 = `${visit2Date}|${v2Time}`;
+
     const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 
     setMessage(res.data.success ? 'Booking successful!' : res.data.message || 'Booking failed.');
@@ -114,6 +120,7 @@ const handleBooking = async () => {
 
   setLoading(false);
 };
+
 
 
   const cancelBooking = async () => {
@@ -161,32 +168,38 @@ const formatDate = (dateStr) => {
 const renderBookingDetails = () => {
   if (!booking) return null;
 
-console.log('visit1Date:', booking.visit1Date);
-console.log('visit1Time:', booking.visit1Time);
-console.log('visit2Date:', booking.visit2Date);
-console.log('visit2Time:', booking.visit2Time);
+  // Logs for debugging
+  console.log('visit1Date:', booking.visit1Date);
+  console.log('visit1Time:', booking.visit1Time);
+  console.log('visit2Date:', booking.visit2Date);
+  console.log('visit2Time:', booking.visit2Time);
 
-const v1Date = new Date(booking.visit1Date);
-const v1Time = new Date(booking.visit1Time);
-const v2Date = new Date(booking.visit2Date);
-const v2Time = new Date(booking.visit2Time);
+  // Safer local date formatter
+  const safeFormatDate = (dateStr) => {
+    if (!dateStr || !dateStr.includes('-')) return 'Invalid Date';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day); // local time
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr || !timeStr.includes(':')) return 'Invalid Time';
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hour);
+    date.setMinutes(minute);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+  };
 
   return (
     <div>
       <p><strong>Your Booking:</strong></p>
-<p>Visit 1: {v1Date.toLocaleDateString('en-US', {
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-})} at {v1Time.toLocaleTimeString('en-US', {
-  hour: 'numeric', minute: '2-digit', hour12: true
-})}</p>
-
-<p>Visit 2: {v2Date.toLocaleDateString('en-US', {
-  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-})} at {v2Time.toLocaleTimeString('en-US', {
-  hour: 'numeric', minute: '2-digit', hour12: true
-})}</p>
-
+      <p>Visit 1: {safeFormatDate(booking.visit1Date)} at {formatTime(booking.visit1Time)}</p>
+      <p>Visit 2: {safeFormatDate(booking.visit2Date)} at {formatTime(booking.visit2Time)}</p>
       <button className="bg-red-500 text-white px-4 py-1 mt-2" onClick={cancelBooking}>Cancel Booking</button>
     </div>
   );

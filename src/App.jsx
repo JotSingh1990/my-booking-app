@@ -64,7 +64,7 @@ export default function App() {
     }
   };
 
- const handleBooking = async () => {
+const handleBooking = async () => {
   if (!selectedVisit1 || !selectedVisit2 || !name) {
     setMessage('All fields are required.');
     return;
@@ -72,21 +72,15 @@ export default function App() {
   setLoading(true);
 
   try {
-    // Extract raw parts
-    const [v1DateRaw, v1TimeRaw] = selectedVisit1.split('|');
-    const [v2DateRaw, v2TimeRaw] = selectedVisit2.split('|');
+    // Extract from dropdown value — formatted as "YYYY-MM-DD|HH:mm"
+    const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
+    const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
 
-    // Clean the values WITHOUT toISOString (which causes UTC shift)
-    const visit1Date = v1DateRaw.trim(); // e.g., '2025-07-22'
-    const visit2Date = v2DateRaw.trim();
+    // Construct the exact format your backend expects
+    const visit1 = `${v1Date}|${v1Time}`;
+    const visit2 = `${v2Date}|${v2Time}`;
 
-    const visit1Time = v1TimeRaw.trim(); // e.g., '9:00'
-    const visit2Time = v2TimeRaw.trim();
-
-    const visit1 = `${visit1Date}|${visit1Time}`;
-    const visit2 = `${visit2Date}|${visit2Time}`;
-
-    // Final API call
+    // Send to Google Apps Script
     const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 
     setMessage(res.data.success ? 'Booking successful!' : res.data.message || 'Booking failed.');
@@ -100,6 +94,7 @@ export default function App() {
 
   setLoading(false);
 };
+
 
   const cancelBooking = async () => {
     setLoading(true);

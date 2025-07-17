@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_URL/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbwLBGijyHEGr1gjIMvb4hzQ88tkCgD_IbwgZ8hqMgMczMpTx2lWvBumO5phTif1erjiJA/exec';
 
 export default function BookingApp() {
   const [email, setEmail] = useState('');

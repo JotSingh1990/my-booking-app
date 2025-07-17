@@ -3,6 +3,7 @@ import axios from 'axios';
 
 const API_BASE = 'https://script.google.com/macros/s/AKfycbwLBGijyHEGr1gjIMvb4hzQ88tkCgD_IbwgZ8hqMgMczMpTx2lWvBumO5phTif1erjiJA/exec';
 
+
 export default function App() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -109,14 +110,15 @@ export default function App() {
     try {
       const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
       const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
+	
+      const adjV1Date = new Date(v1Date); 
+	
 
-      const adjV1Date = new Date(v1Date);
-      adjV1Date.setDate(adjV1Date.getDate() + 1);
-      const visit1 = `${adjV1Date.toISOString().slice(0, 10)}|${v1Time}`;
+      const visit1 = `${Utilities.formatDate(adjV1Date)}|${v1Time}`;
 
       const adjV2Date = new Date(v2Date);
-      adjV2Date.setDate(adjV2Date.getDate() + 1);
-      const visit2 = `${adjV2Date.toISOString().slice(0, 10)}|${v2Time}`;
+  
+      const visit2 = `${Utilities.formatDate(adjV2Date)}|${v2Time}`;
 
       const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 

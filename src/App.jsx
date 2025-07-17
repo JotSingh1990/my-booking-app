@@ -64,50 +64,38 @@ export default function App() {
     }
   };
 
-  const handleBooking = async () => {
-  if (!selectedVisit1 || !selectedVisit2 || !name || !email) {
+ const handleBooking = async () => {
+  if (!selectedVisit1 || !selectedVisit2 || !name) {
     setMessage('All fields are required.');
     return;
   }
-
   setLoading(true);
 
   try {
-    // Use a flexible split on either '-' or '–' (en dash)
-    const [v1DateRaw, v1TimeRange] = selectedVisit1.split('|');
-    const [v2DateRaw, v2TimeRange] = selectedVisit2.split('|');
+    // Extract raw parts
+    const [v1DateRaw, v1TimeRaw] = selectedVisit1.split('|');
+    const [v2DateRaw, v2TimeRaw] = selectedVisit2.split('|');
 
-    const visit1Date = new Date(`${v1DateRaw}T00:00:00`).toISOString().slice(0, 10); // Preserves correct day
-    const visit2Date = new Date(`${v2DateRaw}T00:00:00`).toISOString().slice(0, 10);
+    // Clean the values WITHOUT toISOString (which causes UTC shift)
+    const visit1Date = v1DateRaw.trim(); // e.g., '2025-07-22'
+    const visit2Date = v2DateRaw.trim();
 
-    const visit1Time = v1TimeRange.split(/[-–]/)[0].trim();
-    const visit2Time = v2TimeRange.split(/[-–]/)[0].trim();
+    const visit1Time = v1TimeRaw.trim(); // e.g., '9:00'
+    const visit2Time = v2TimeRaw.trim();
 
-    console.log('visit1Date =', visit1Date);
-    console.log('visit1Time =', visit1Time);
-    console.log('visit2Date =', visit2Date);
-    console.log('visit2Time =', visit2Time);
+    const visit1 = `${visit1Date}|${visit1Time}`;
+    const visit2 = `${visit2Date}|${visit2Time}`;
 
-    const url = `${API_BASE}?type=submitBooking` +
-      `&email=${encodeURIComponent(email)}` +
-      `&name=${encodeURIComponent(name)}` +
-      `&visit1Date=${encodeURIComponent(visit1Date)}` +
-      `&visit1Time=${encodeURIComponent(visit1Time)}` +
-      `&visit2Date=${encodeURIComponent(visit2Date)}` +
-      `&visit2Time=${encodeURIComponent(visit2Time)}`;
+    // Final API call
+    const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 
-    const res = await axios.get(url);
-
+    setMessage(res.data.success ? 'Booking successful!' : res.data.message || 'Booking failed.');
     if (res.data.success) {
-      setMessage('Booking successful!');
       fetchBooking();
       fetchSlots();
-    } else {
-      setMessage(res.data.message || 'Booking failed.');
     }
   } catch (err) {
-    console.error('Booking failed due to request error:', err);
-    setMessage('Booking failed.');
+    setMessage('Booking failed. Please try again.');
   }
 
   setLoading(false);

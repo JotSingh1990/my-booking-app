@@ -89,37 +89,37 @@ const handleBooking = async () => {
     setMessage('All fields are required.');
     return;
   }
+
   setLoading(true);
 
   try {
-    // Parse dropdown selections like "2025-07-22|09:00"
-    const [v1DateStr, v1Time] = selectedVisit1.split('|').map(s => s.trim());
-    const [v2DateStr, v2Time] = selectedVisit2.split('|').map(s => s.trim());
+    const [v1Date, v1Time] = selectedVisit1.split('|').map(s => s.trim());
+    const [v2Date, v2Time] = selectedVisit2.split('|').map(s => s.trim());
 
-    // Prevent implicit UTC conversion — use components
-    const [v1Year, v1Month, v1Day] = v1DateStr.split('-').map(Number);
-    const [v2Year, v2Month, v2Day] = v2DateStr.split('-').map(Number);
+    console.log('Submitting booking:');
+    console.log('Visit1:', v1Date, v1Time);
+    console.log('Visit2:', v2Date, v2Time);
 
-    const visit1Date = `${v1Year}-${String(v1Month).padStart(2, '0')}-${String(v1Day).padStart(2, '0')}`;
-    const visit2Date = `${v2Year}-${String(v2Month).padStart(2, '0')}-${String(v2Day).padStart(2, '0')}`;
-
-    // Construct visit strings for backend
-    const visit1 = `${visit1Date}|${v1Time}`;
-    const visit2 = `${visit2Date}|${v2Time}`;
+    const visit1 = `${v1Date}|${v1Time}`;
+    const visit2 = `${v2Date}|${v2Time}`;
 
     const res = await axios.get(`${API_BASE}?type=submitBooking&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&visit1=${encodeURIComponent(visit1)}&visit2=${encodeURIComponent(visit2)}`);
 
     setMessage(res.data.success ? 'Booking successful!' : res.data.message || 'Booking failed.');
+
     if (res.data.success) {
+      console.log('Re-fetching booking...');
       fetchBooking();
       fetchSlots();
     }
   } catch (err) {
+    console.error('Booking failed:', err);
     setMessage('Booking failed. Please try again.');
   }
 
   setLoading(false);
 };
+
 
 
 
